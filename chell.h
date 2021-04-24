@@ -11,7 +11,7 @@ int  chell_launch(char **);
 
 int chell_cd 	(char **args);
 int chell_help 	(char **args);
-int chell_exit 	(char **args);
+int chell_halt 	(char **args);
 
 int chell_num_builtins (void);
 int chell_exec (char **args);

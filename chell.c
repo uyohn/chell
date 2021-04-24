@@ -11,13 +11,13 @@
 char *builtin_str[] = {
 	"cd",
 	"help",
-	"exit"
+	"halt"
 };
 
 int (*builtin_func[]) (char **) = {
 	&chell_cd,
 	&chell_help,
-	&chell_exit
+	&chell_halt
 };
 
 // TODO: file as a parameter
@@ -131,18 +131,28 @@ int chell_cd (char **args) {
 }
 
 
+// print info about author, program purpose and usage
 int chell_help (char **args) {
-	printf("Stephen Brennan's tutorial\n");
-	printf("Implemented builtins:\n");
+	printf("\n\t////////  cHell  \\\\\\\\\\\\\\\\\n\n");
+	printf("\tcreated by Matej Rastocky\n\n");
+
+	printf("\t#########################\n\n");
+
+	printf("\tsimple shell implemented in C\n");
+	printf("\tdeveloped as a uni assignment\n\n");
+
+	printf("\tthis shell only provides\n\trudimentary functions\n\n");
+
+	printf("\timplemented builtins:\n");
 
 	for (int i = 0; i < chell_num_builtins(); i++) {
-		printf("\t%s\n", builtin_str[i]);
+		printf("\t  %s\n", builtin_str[i]);
 	}
 
 	return 1;
 }
 
 
-int chell_exit (char **args) {
+int chell_halt (char **args) {
 	return 0;
 }

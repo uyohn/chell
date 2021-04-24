@@ -31,6 +31,11 @@ $(EXE): $(OBJ)
 $(OBJ): $(INCL)
 
 
+# RUN COMPILED PROGRAM
+run: $(EXE)
+	./main
+
+
 # CREATE GDB CAPABLE EXE WITH DEBUG FLAGS
 debug:
 	$(CC) $(CDEBUG) $(SRC)
