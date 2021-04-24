@@ -1,7 +1,7 @@
 # SOURCE, EXECUTABLE, INCLUDES, LIBRARY
 
-INCL  = main.h chell.h
-SRC   = main.c chell.c
+INCL  = main.h chell.h helpers.h
+SRC   = main.c chell.c helpers.c
 OBJ   = $(SRC:.c=.o)
 LIBS  =
 EXE   = main

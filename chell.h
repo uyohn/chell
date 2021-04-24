@@ -3,10 +3,15 @@
 #define CHELL_TOK_BUFSIZE 64
 #define CHELL_TOK_DELIM " \t\r\n\a"
 
+#define CHELL_PROMPT_TIME_BUF_SIZE 6
+
 // COLOR OUTPUT
 #define BLU   "\x1B[34m"
 #define GRN   "\x1B[32m"
 #define YEL   "\x1B[33m"
+#define GRY   "\x1B[37m"
+#define CYA   "\x1B[36m"
+#define BLD   "\033[1m"
 #define RESET "\x1B[0m"
 
 

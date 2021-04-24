@@ -4,8 +4,10 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <unistd.h>
+#include <time.h>
 
 #include "chell.h"
+#include "helpers.h"
 
 
 char *builtin_str[] = {
@@ -23,7 +25,10 @@ int (*builtin_func[]) (char **) = {
 // print chell prompt
 // TODO: make configurable by config file / env variables
 void chell_prompt () {
-	printf("[00:59] " GRN "uyohn" RESET " at " YEL "arch-machine" RESET BLU " › " RESET);
+	char time[CHELL_PROMPT_TIME_BUF_SIZE];
+	format_time(time);
+
+	printf(BLD "[%s] " CYA "uyohn" GRY " at " YEL BLD "arch-machine" BLU " ≡ " RESET, time);
 }
 
 // TODO: file as a parameter
