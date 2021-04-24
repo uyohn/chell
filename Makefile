@@ -1,18 +1,41 @@
-# -*- MakeFile -*-
+# SOURCE, EXECUTABLE, INCLUDES, LIBRARY
 
-#target: dependencies
-#	action
+INCL  = main.h chell.h
+SRC   = main.c chell.c
+OBJ   = $(SRC:.c=.o)
+LIBS  =
+EXE   = main
 
-all: main
 
-main: main.o chell.o
-	gcc main.o chell.o -o main
+# COMPILER, LINKER
 
-main.o: main.c
-	gcc -c main.c
+CC      = gcc
+CFLAGS  = -pedantic -Wall -O2
+LIBPATH = -L.
+LDFLAGS = -o $(EXE) $(LIBPATH) $(LIBS)
+CDEBUG  = -pedantic -Wall -g -DDEBUG $(LDFLAGS)
+RM      = rm -f
 
-chell.o: chell.c chell.h
-	gcc -c chell.c
 
+# COMPILE, ASSEMBLE C INTO OBJECT FILES
+%.o: %.c
+	$(CC) -c $(CFLAGS) $*.c
+
+
+# LINK OBJ WITH LIBS INTO BINARIES
+$(EXE): $(OBJ)
+	$(CC) $(LDFLAGS) $(OBJ)
+
+
+# OBJ DEPEND ON LIBRARIES
+$(OBJ): $(INCL)
+
+
+# CREATE GDB CAPABLE EXE WITH DEBUG FLAGS
+debug:
+	$(CC) $(CDEBUG) $(SRC)
+
+
+# CLEAN UP
 clean:
-	rm -f *.o main
+	$(RM) $(OBJ) $(EXE) core a.out
