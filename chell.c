@@ -20,6 +20,12 @@ int (*builtin_func[]) (char **) = {
 	&chell_halt
 };
 
+// print chell prompt
+// TODO: make configurable by config file / env variables
+void chell_prompt () {
+	printf("[00:59] " GRN "uyohn" RESET " at " YEL "arch-machine" RESET BLU " › " RESET);
+}
+
 // TODO: file as a parameter
 char *chell_read_line (void) {
 	char *line = NULL;
@@ -133,22 +139,24 @@ int chell_cd (char **args) {
 
 // print info about author, program purpose and usage
 int chell_help (char **args) {
-	printf("\n\t////////  cHell  \\\\\\\\\\\\\\\\\n\n");
-	printf("\tcreated by Matej Rastocky\n\n");
+	printf("\n////////  cHell  \\\\\\\\\\\\\\\\\n");
+	printf("created by Matej Rastocky\n\n");
 
-	printf("\t#########################\n\n");
 
-	printf("\tsimple shell implemented in C\n");
-	printf("\tdeveloped as a uni assignment\n\n");
+	printf("simple shell implemented in C\n");
+	printf("developed as a uni assignment\n\n");
 
-	printf("\tthis shell only provides\n\trudimentary functions\n\n");
+	printf("heavily inspired by\nS. Brennan's tutorial\n\n");
 
-	printf("\timplemented builtins:\n");
+	printf("this shell only provides\nrudimentary functions\n\n");
+
+	printf("implemented builtins:\n");
 
 	for (int i = 0; i < chell_num_builtins(); i++) {
 		printf("\t  %s\n", builtin_str[i]);
 	}
 
+	printf("\n");
 	return 1;
 }
 

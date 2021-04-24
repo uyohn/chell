@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <signal.h>
 
 #include "main.h"
 #include "chell.h"
@@ -8,8 +9,20 @@
 int main (int argc, char **argv) {
 	// INICIALIZATION
 
+	// clear terminal
+	system("clear");
+
+	// handle ^C
+	struct sigaction act;
+	act.sa_handler = int_handler;
+	sigaction(SIGINT, &act, NULL);
+
+
+
 	// REPL LOOP
 	chell_loop();
+
+
 
 	// SHUTDOWN / CLEANUP
 	return EXIT_SUCCESS;
@@ -23,7 +36,9 @@ void chell_loop () {
 	int status;
 
 	do {
-		printf("> ");
+		chell_prompt(); 					// show the prompt
+
+		// TODO: parsing
 		line = chell_read_line();
 		args = chell_split_line(line);
 		status = chell_exec(args);
@@ -31,4 +46,10 @@ void chell_loop () {
 		free(line);
 		free(args);
 	} while (status);
+}
+
+
+// stop the (c)hell interrupt
+void int_handler () {
+	exit(EXIT_SUCCESS);
 }
