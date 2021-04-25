@@ -45,27 +45,27 @@ void chell_prompt () {
 	free(working_dir);
 }
 
-// TODO: file as a parameter
+
+// read a line from stdin
 char *chell_read_line (void) {
 	char *line = NULL;
 	size_t bufsize = 0;
 
-	if ( getline(&line, &bufsize, stdin) == -1) {
-		if ( feof(stdin) ) {
+	if ( getline(&line, &bufsize, stdin) == -1 ) {
+		if ( feof(stdin) )
 			exit(EXIT_SUCCESS);
-		} else {
-			perror("readline");
-			exit(EXIT_FAILURE);
-		}
+
+		perror("readline");
+		exit(EXIT_FAILURE);
 	}
 
 	return line;
 }
 
 
-// TODO: improve parsing
-char **chell_split_line (char *line) {
-	int bufsize = CHELL_TOK_BUFSIZE;
+// parse line into commands (split by | (pipe))
+char **chell_parse_line (char *line) {
+	size_t bufsize = CHELL_TOK_BUFSIZE;
 	int pos = 0;
 
 	char **tokens = malloc(bufsize * sizeof(char*));
@@ -76,7 +76,43 @@ char **chell_split_line (char *line) {
 		exit(EXIT_FAILURE);
 	}
 
-	token = strtok(line, CHELL_TOK_DELIM);
+	token = strtok(line, "|");
+	while (token != NULL) {
+		tokens[pos] = token;
+		pos++;
+
+		if (pos >= bufsize) {
+			bufsize += CHELL_TOK_BUFSIZE;
+			tokens = realloc(tokens, bufsize * sizeof(char*));
+
+			if (!tokens) {
+				fprintf(stderr, "chell: allocation error\n");
+				exit(EXIT_FAILURE);
+			}
+		}
+
+		token = strtok(NULL, "|");
+	}
+
+	tokens[pos] = NULL;
+
+	return tokens;
+}
+
+// parse command into tokens separated by whitespace
+char **chell_parse_cmd (char *command) {
+	size_t bufsize = CHELL_TOK_BUFSIZE;
+	int pos = 0;
+
+	char **tokens = malloc(bufsize * sizeof(char*));
+	char *token;
+
+	if (!tokens) {
+		fprintf(stderr, "chell: allocation error\n");
+		exit(EXIT_FAILURE);
+	}
+
+	token = strtok(command, CHELL_TOK_DELIM);
 	while (token != NULL) {
 		tokens[pos] = token;
 		pos++;
@@ -95,52 +131,66 @@ char **chell_split_line (char *line) {
 	}
 
 	tokens[pos] = NULL;
+
 	return tokens;
 }
 
 
 // run a builtin function, takes precedence over chell_launch
-int chell_exec (char **args) {
+int chell_exec (char **commands) {
+	// parse the first command into args array
+	char **args = chell_parse_cmd(commands[0]);
+
 	// empty command
 	if (args[0] == NULL)
 		return 1;
 
+
+	// try to find the command in builtins
 	for (int i = 0; i < chell_num_builtins(); i++) {
 		if (strcmp(args[0], builtin_str[i]) == 0) {
 			return (*builtin_func[i])(args);
 		}
 	}
 
-	return chell_launch(args);
+
+	// if not found, launch the command chain
+	return chell_launch(commands);
 }
 
 
-// run a command in a child process
-int chell_launch (char **args) {
-	pid_t pid, wpid;
-	int status;
+// run command/s in a child process
+int chell_launch (char **commands) {
+	char *command = NULL;
 
-	pid = fork();
+	// for each cmd
+	for (int i = 0; (command = commands[i]) != NULL; i++) {
 
-	if (pid < 0) {
-		perror("chell, forking");
-		exit(EXIT_FAILURE);
-	}
+		// split command into tokens
+		char **tokens = chell_parse_cmd(command);
 
-	// child process
-	if (pid == 0) {
-		if (execvp(args[0], args) == -1) {
-			perror("chell");
+		// prepare pipe
+		if (commands[i+1] != NULL) {
+			// exec the command
+			int sout_fd = pipe_exec(tokens);
+
+			// redirect last command out to next in
+			dup2(sout_fd, STDIN_FILENO);
+			close(sout_fd);
+
+			continue;
 		}
 
-		exit(EXIT_FAILURE);
-	} 
-	
-	// parent process
-	do {
-		wpid = waitpid(pid, &status, WUNTRACED);
-	} while (!WIFEXITED(status) && !WIFSIGNALED(status));
+		// last command in pipe chain - print its output
+		int sout_fd = pipe_exec(tokens);
+		FILE *sout = fdopen(sout_fd, "r");
 
+		char buffer[CHELL_STDOUT_BUFSIZE];
+
+		// print sout from last command
+		while ( fgets(buffer, CHELL_STDOUT_BUFSIZE, sout) )
+			printf("%s", buffer);
+	}
 
 	return 1;
 }

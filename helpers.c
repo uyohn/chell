@@ -1,9 +1,11 @@
 #include <stdio.h>
-#include <time.h>
-#include <pwd.h>
+#include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
-#include <stdlib.h>
+#include <time.h>
+#include <pwd.h>
+#include <sys/wait.h>
+
 
 #include "helpers.h"
 
@@ -53,40 +55,53 @@ char *get_home_dir () {
 }
 
 
-
-// custom implementation of popen
-stdpipes chell_popen (const char *command) {
-	stdpipes result = {.out = NULL, .in = NULL, .err = NULL};
+// returns pipe success
+// do not forget to close the pipe in parent
+int pipe_exec (char **command) {
+	int res = 0;
 
 	int sout_pair[2];
 	pid_t pid;
+	int status;
 
+	// error creating pipe
 	if (pipe(sout_pair) < 0)
-		return result;
-
+		return res;
 
 	pid = fork();
 
-	// check for errors
-	if (pid < 0) {
-		close(sout_pair[0]);
-		close(sout_pair[1]);
-		return result;
-	}
+	// error forking
+	if (pid < 0)
+		return res;
 
 	// child
 	if (pid == 0) {
-		close(sout_pair[0]);
+		// redirect sout to pipe
 		dup2(sout_pair[1], STDOUT_FILENO);
+		// close pipe ends
 		close(sout_pair[1]);
+		close(sout_pair[0]); // read end not used in child
 
-		execl("/bin/sh", "sh", "-c", command, NULL);
+		// exec the command
+		if ( execvp(command[0], command) == -1 )
+			perror("chell");
+
+		// stop child
 		exit(127);
 	}
 
-	//parent
-	close(sout_pair[1]);
-	result.out = fdopen(sout_pair[0], "r");
+	// parent
+	do {
+		// write end not used in parent
+		close(sout_pair[1]);
 
-	return result;
+		// copy read end of pipe
+		res = sout_pair[0];
+
+		// wait for child to finish
+		waitpid(pid, &status, WUNTRACED);
+	} while (!WIFEXITED(status) && !WIFSIGNALED(status));
+
+	// return the read end of pipe (do not forget to close it in parent)
+	return res;
 }

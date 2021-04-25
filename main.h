@@ -1,2 +1,2 @@
-void chell_loop  ();
-void int_handler ();
+void chell_loop    ();
+void int_handler   ();

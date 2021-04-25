@@ -2,6 +2,7 @@
 #define CHELL_RL_BUFSIZE 1024
 #define CHELL_TOK_BUFSIZE 64
 #define CHELL_TOK_DELIM " \t\r\n\a"
+#define CHELL_STDOUT_BUFSIZE 4096
 
 #define CHELL_PROMPT_TIME_BUF_SIZE 6
 
@@ -18,6 +19,8 @@
 // FUNCTION PROTOTYPES
 char *chell_read_line();
 char **chell_split_line(char *);
+char **chell_parse_line (char *);
+char **chell_parse_cmd (char *);
 
 void chell_prompt (void);
 

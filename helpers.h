@@ -9,4 +9,4 @@ char *get_user_name    (void);
 char *get_working_dir  (void);
 char *get_home_dir     (void);
 
-stdpipes chell_popen (const char *);
+int pipe_exec (char **);

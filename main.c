@@ -1,11 +1,13 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
 #include <signal.h>
 #include <argp.h>
 
 #include "main.h"
 #include "chell.h"
 
+// TODO: cleanup argp setup
 // ARGP setup
 const char *argp_program_version = "chell 1.0";
 const char *argp_program_bug_address = "<rastockymatej@gmail.com>";
@@ -25,9 +27,9 @@ static struct argp_option options[] = {
 };
 
 struct arguments {
-	char *args[0];
 	int port;
 	char *path;
+	char *args[];
 };
 
 static error_t parse_opt (int key, char *arg, struct argp_state *state) {
@@ -50,17 +52,17 @@ static error_t parse_opt (int key, char *arg, struct argp_state *state) {
 
 static struct argp argp = { options, parse_opt, args_doc, doc };
 
+
+// ENTRY POINT
 int main (int argc, char **argv) {
-	// INICIALIZATION
+	// INITIALIZATION
 	struct arguments arguments;
 	arguments.port = -1;
 	arguments.path = NULL;
 	argp_parse(&argp, argc, argv, 0, 0, &arguments);
 
-	printf("port: %d, path: %s\n", arguments.port, arguments.path);
-
 	// clear terminal
-	//system("clear");
+	system("clear");
 
 	// handle ^C
 	struct sigaction act;
@@ -82,22 +84,34 @@ int main (int argc, char **argv) {
 // read, parse, execute
 void chell_loop () {
 	char *line;
-	char **args;
+	char **commands;
 	int status;
+
+	int o_stdin = dup(STDIN_FILENO);
 
 	do {
 		chell_prompt(); 					// show the prompt
 
-		// TODO: parsing
+		// get line
 		line = chell_read_line();
-		args = chell_split_line(line);
-		status = chell_exec(args);
+		
+		// parse it into commands
+		commands = chell_parse_line(line);
 
+		// exec commands
+		status = chell_exec(commands);
+
+
+		// cleanup
 		free(line);
-		free(args);
+		free(commands);
+
+		dup2(o_stdin, STDIN_FILENO);
 
 		printf("\n");
 	} while (status);
+
+	close(o_stdin);
 }
 
 
