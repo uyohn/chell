@@ -45,6 +45,8 @@ void chell_loop () {
 
 		free(line);
 		free(args);
+
+		printf("\n");
 	} while (status);
 }
 

@@ -39,7 +39,7 @@ void chell_prompt () {
 	gethostname(host_name, 1023);
 
 	// get user name getpwuid
-	printf("\n" BLD "[%s] " CYA "%s" GRY " at " YEL BLD "%s" GRY "\n" GRN "%s" BLU " ≡ " RESET, time, user_name, host_name, working_dir);
+	printf(BLD "[%s] " CYA "%s" GRY " at " YEL BLD "%s" GRY "\n" GRN "%s" BLU " ≡ " RESET, time, user_name, host_name, working_dir);
 
 	// cleanup
 	free(working_dir);
@@ -156,12 +156,13 @@ int chell_num_builtins () {
 
 // change directory
 int chell_cd (char **args) {
-	// if no argument, go to user's home dir
-	if (args[1] == NULL)
+	if (args[1] == NULL) {
 		if (chdir(get_home_dir()) != 0)
 			perror("chell");
 
-	// change dir
+		return 1;
+	} 
+
 	if (chdir(args[1]) != 0)
 		perror("chell");
 
