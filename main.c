@@ -23,12 +23,14 @@ static char args_doc[] = "";
 static struct argp_option options[] = {
 	{"port",    'p', "PORT",      0,  "Local socket port" },
 	{"path",    'u', "PATH",      0,  "Path to local socket" },
+	{"client",  'c',      0,      0,  "Open shell as a client" },
 	{ 0 }
 };
 
 struct arguments {
 	int port;
 	char *path;
+	int client;
 	char *args[];
 };
 
@@ -43,6 +45,9 @@ static error_t parse_opt (int key, char *arg, struct argp_state *state) {
 		case 'u':
 			arguments->path = arg;
 			break;
+		case 'c':
+			arguments->client = 1;
+			break;
 		default:
 			return ARGP_ERR_UNKNOWN;
 	}
@@ -56,13 +61,22 @@ static struct argp argp = { options, parse_opt, args_doc, doc };
 // ENTRY POINT
 int main (int argc, char **argv) {
 	// INITIALIZATION
+	// clear terminal
+	system("clear");
+
 	struct arguments arguments;
 	arguments.port = -1;
 	arguments.path = NULL;
 	argp_parse(&argp, argc, argv, 0, 0, &arguments);
 
-	// clear terminal
-	system("clear");
+	// socket process
+	if (arguments.port != -1 && arguments.path != NULL && arguments.client != 1)		
+		open_socket(arguments.port, arguments.path);
+
+	// client mode
+	if (arguments.port != -1 && arguments.path != NULL && arguments.client == 1)
+		conn_socket(arguments.port, arguments.path);
+
 
 	// handle ^C
 	struct sigaction act;
@@ -83,6 +97,8 @@ int main (int argc, char **argv) {
 
 // read, parse, execute
 void chell_loop () {
+	char *prompt = (char *) malloc(CHELL_STDOUT_BUFSIZE * sizeof(char));
+
 	char *line;
 	char **commands;
 	int status;
@@ -90,7 +106,8 @@ void chell_loop () {
 	int o_stdin = dup(STDIN_FILENO);
 
 	do {
-		chell_prompt(); 					// show the prompt
+		chell_prompt(prompt);
+		printf("%s", prompt); 					// show the prompt
 
 		// get line
 		line = chell_read_line();
@@ -106,12 +123,14 @@ void chell_loop () {
 		free(line);
 		free(commands);
 
+
 		dup2(o_stdin, STDIN_FILENO);
 
 		printf("\n");
 	} while (status);
 
 	close(o_stdin);
+	free(prompt);
 }
 
 

@@ -22,7 +22,7 @@ char **chell_split_line(char *);
 char **chell_parse_line (char *);
 char **chell_parse_cmd (char *);
 
-void chell_prompt (void);
+void chell_prompt (char *);
 
 int chell_cd 	(char **args);
 int chell_help 	(char **args);
@@ -32,3 +32,7 @@ int chell_num_builtins (void);
 
 int  chell_launch(char **);
 int chell_exec (char **args);
+
+
+void open_socket (int, char *);
+void conn_socket (int, char *);

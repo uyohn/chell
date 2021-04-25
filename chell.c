@@ -5,6 +5,8 @@
 #include <sys/wait.h>
 #include <unistd.h>
 #include <time.h>
+#include <sys/socket.h>
+#include <sys/un.h>
 
 #include "chell.h"
 #include "helpers.h"
@@ -24,7 +26,7 @@ int (*builtin_func[]) (char **) = {
 
 // print chell prompt
 // TODO: make configurable by config file / env variables
-void chell_prompt () {
+void chell_prompt (char *str) {
 	// get current time using format_time from helpers.c
 	char time[CHELL_PROMPT_TIME_BUF_SIZE];
 	get_current_time(time);
@@ -39,7 +41,7 @@ void chell_prompt () {
 	gethostname(host_name, 1023);
 
 	// get user name getpwuid
-	printf(BLD "[%s] " CYA "%s" GRY " at " YEL BLD "%s" GRY "\n" GRN "%s" BLU " ≡ " RESET, time, user_name, host_name, working_dir);
+	sprintf(str, BLD "[%s] " CYA "%s" GRY " at " YEL BLD "%s" GRY "\n" GRN "%s" BLU " ≡ " RESET, time, user_name, host_name, working_dir);
 
 	// cleanup
 	free(working_dir);
@@ -153,6 +155,8 @@ int chell_exec (char **commands) {
 		}
 	}
 
+	free(args);
+
 
 	// if not found, launch the command chain
 	return chell_launch(commands);
@@ -196,6 +200,143 @@ int chell_launch (char **commands) {
 }
 
 
+// SOCKET
+void open_socket (int port, char *path) {
+	pid_t pid = fork();
+
+	if (pid == 0) {
+		// prepare prompt string
+		char *prompt = (char *) malloc(CHELL_STDOUT_BUFSIZE * sizeof(char));
+
+		struct sockaddr_un addr;
+
+		memset(&addr, 0, sizeof(addr));
+
+		addr.sun_family = AF_UNIX;
+		strcpy(addr.sun_path, path);
+
+		// s is "main" socket, it is listening
+		int s = socket(AF_UNIX, SOCK_STREAM, 0);
+
+		if (s == -1) {
+			perror("socket");
+			exit(EXIT_FAILURE);
+		}
+
+		// if socket exists, delete it
+		unlink(path);
+
+		int b = bind(s, (struct sockaddr *) &addr, sizeof(addr));
+
+		if (b == -1) {
+			perror("bind");
+			exit(EXIT_FAILURE);
+		}
+
+		// listen
+		listen(s, 1);
+		printf("server is listening on port %d and path %s\n", port, path);
+
+		// only 1 client
+		int client_fd = accept(s, NULL, NULL);
+
+		if (client_fd < 0) {
+			perror("conn failed");
+			exit(EXIT_FAILURE);
+		}
+
+		printf("Client connected\n");
+		// show prompt
+		chell_prompt(prompt);
+		send(client_fd, prompt, strlen(prompt), 0);
+
+
+		int r;
+		char buf[64];
+
+		char **commands;
+
+		dup2(client_fd, STDOUT_FILENO);
+
+		while( (r = read(client_fd, buf, 64)) > 0) {
+			buf[r] = 0;          // za poslednym prijatym znakom
+
+			// parse
+			commands = chell_parse_line(buf);
+			//exec
+			chell_exec(commands);
+
+			// show prompt
+			chell_prompt(prompt);
+			send(client_fd, prompt, strlen(prompt), 0);
+		}
+
+		free(prompt);
+		exit(EXIT_SUCCESS);
+	}
+
+	return;
+}
+
+// CLIENT MODE
+void conn_socket (int port, char *path) {
+	// connect to the socket
+	struct sockaddr_un addr;
+
+	memset(&addr, 0, sizeof(addr));
+
+	addr.sun_family = AF_UNIX;
+	strcpy(addr.sun_path, path);
+
+	// s is "main" socket, it is listening
+	int s = socket(AF_UNIX, SOCK_STREAM, 0);
+
+	if (s == -1) {
+		perror("socket");
+		exit(EXIT_FAILURE);
+	}
+
+	int c = connect(s, (struct sockaddr *) &addr, sizeof(addr));
+
+	if (c == -1) {
+		perror("connect");
+		exit(EXIT_FAILURE);
+	}
+
+	printf("Connected to local socket %s on port %d\n\n", path, port);
+
+
+	// client read from stdin and server
+	int r;
+	fd_set rs;
+	char msg[64] = "hellp";
+
+	FD_ZERO(&rs);
+	FD_SET(0, &rs);
+	FD_SET(s, &rs);
+
+	// toto umoznuje klientovi cakat na vstup z terminalu (stdin) alebo zo soketu
+	// co je prave pripravene, to sa obsluzi (nezalezi na poradi v akom to pride)
+	while( select(s + 1, &rs, NULL, NULL, NULL) > 0) {
+		if (FD_ISSET(s, &rs)) {  				// je to deskriptor s - soket spojenia na server?
+			r = read(s, msg, 1); 			  	// precitaj zo soketu (od servera)
+			write(STDOUT_FILENO, msg, r);    	// zapis na deskriptor 1 = stdout (terminal)
+		}
+
+		if (FD_ISSET(0, &rs)) {
+			r = read(STDIN_FILENO, msg, 64);  	// precitaj zo stdin (terminal)
+							   					//if (msg[r-1]=='\n') msg[r-1]=0;
+			write(s, msg, r);   				// posli serveru (cez soket s)
+		}
+
+		FD_ZERO(&rs);          					// connect() mnoziny meni, takze ich treba znova nastavit
+		FD_SET(STDIN_FILENO, &rs);
+		FD_SET(s, &rs);
+	}
+
+	perror("select");        		// ak server skonci, nemusi ist o chybu
+	close(s);
+}
 
 
 // BUILTINS

@@ -9,6 +9,7 @@
 
 #include "helpers.h"
 
+
 // return formated time
 void get_current_time (char *output) {
     time_t rawtime;
