@@ -42,6 +42,18 @@ char *get_working_dir () {
 }
 
 
+// return user home dir
+char *get_home_dir () {
+	uid_t id = getuid();
+	struct passwd *pwd;
+
+	pwd = getpwuid(id);
+
+	return pwd->pw_dir;
+}
+
+
+
 // custom implementation of popen
 stdpipes chell_popen (const char *command) {
 	stdpipes result = {.out = NULL, .in = NULL, .err = NULL};

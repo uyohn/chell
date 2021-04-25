@@ -150,14 +150,20 @@ int chell_num_builtins () {
 	return sizeof(builtin_str) / sizeof (char *);
 }
 
+
+
+// builtins
+
+// change directory
 int chell_cd (char **args) {
-	if (args[1] == NULL) {
-		fprintf(stderr, "chell: expected arguments to \"cd\"\n");
-	} else {
-		if (chdir(args[1]) != 0) {
+	// if no argument, go to user's home dir
+	if (args[1] == NULL)
+		if (chdir(get_home_dir()) != 0)
 			perror("chell");
-		}
-	}
+
+	// change dir
+	if (chdir(args[1]) != 0)
+		perror("chell");
 
 	return 1;
 }
