@@ -63,6 +63,7 @@ char *chell_read_line (void) {
 }
 
 
+// TODO: improve parsing
 char **chell_split_line (char *line) {
 	int bufsize = CHELL_TOK_BUFSIZE;
 	int pos = 0;
@@ -146,16 +147,16 @@ int chell_launch (char **args) {
 
 
 
+
+// BUILTINS
+
 int chell_num_builtins () {
 	return sizeof(builtin_str) / sizeof (char *);
 }
 
-
-
-// builtins
-
 // change directory
 int chell_cd (char **args) {
+	// default: cd ~ if no arguments
 	if (args[1] == NULL) {
 		if (chdir(get_home_dir()) != 0)
 			perror("chell");
@@ -163,6 +164,7 @@ int chell_cd (char **args) {
 		return 1;
 	} 
 
+	// cd if path argument specified
 	if (chdir(args[1]) != 0)
 		perror("chell");
 
@@ -194,6 +196,7 @@ int chell_help (char **args) {
 }
 
 
+// stop the REPL loop
 int chell_halt (char **args) {
 	return 0;
 }
