@@ -25,10 +25,24 @@ int (*builtin_func[]) (char **) = {
 // print chell prompt
 // TODO: make configurable by config file / env variables
 void chell_prompt () {
+	// get current time using format_time from helpers.c
 	char time[CHELL_PROMPT_TIME_BUF_SIZE];
-	format_time(time);
+	get_current_time(time);
 
-	printf(BLD "[%s] " CYA "uyohn" GRY " at " YEL BLD "arch-machine" BLU " ≡ " RESET, time);
+	// get info about user
+	char *user_name = get_user_name();
+	char *working_dir = get_working_dir();
+
+	// get machine name
+	char host_name[1024];
+	host_name[1023] = '\0';
+	gethostname(host_name, 1023);
+
+	// get user name getpwuid
+	printf("\n" BLD "[%s] " CYA "%s" GRY " at " YEL BLD "%s" GRY "\n" GRN "%s" BLU " ≡ " RESET, time, user_name, host_name, working_dir);
+
+	// cleanup
+	free(working_dir);
 }
 
 // TODO: file as a parameter
@@ -84,33 +98,7 @@ char **chell_split_line (char *line) {
 }
 
 
-int chell_launch (char **args) {
-	pid_t pid, wpid;
-	int status;
-
-	pid = fork();
-
-	if (pid == 0) {
-		// child process
-		if (execvp(args[0], args) == -1) {
-			perror("chell");
-		}
-
-		exit(EXIT_FAILURE);
-	} else if (pid < 0) {
-		// error forking
-		perror("chell");
-	} else {
-		// parent process
-		do {
-			wpid = waitpid(pid, &status, WUNTRACED);
-		} while (!WIFEXITED(status) && !WIFSIGNALED(status));
-	}
-
-	return 1;
-}
-
-
+// run a builtin function, takes precedence over chell_launch
 int chell_exec (char **args) {
 	// empty command
 	if (args[0] == NULL)
@@ -124,6 +112,39 @@ int chell_exec (char **args) {
 
 	return chell_launch(args);
 }
+
+
+// run a command in a child process
+int chell_launch (char **args) {
+	pid_t pid, wpid;
+	int status;
+
+	pid = fork();
+
+	if (pid < 0) {
+		perror("chell, forking");
+		exit(EXIT_FAILURE);
+	}
+
+	// child process
+	if (pid == 0) {
+		if (execvp(args[0], args) == -1) {
+			perror("chell");
+		}
+
+		exit(EXIT_FAILURE);
+	} 
+	
+	// parent process
+	do {
+		wpid = waitpid(pid, &status, WUNTRACED);
+	} while (!WIFEXITED(status) && !WIFSIGNALED(status));
+
+
+	return 1;
+}
+
+
 
 int chell_num_builtins () {
 	return sizeof(builtin_str) / sizeof (char *);
